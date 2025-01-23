@@ -1,0 +1,20 @@
+{
+    "name": "whoissaito/server_files",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Whoissaito\\ServerFiles\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "whoissaito",
+            "email": "saito@proton.me"
+        }
+    ],
+    "require": {
+        "slim/slim": "^4.14",
+        "slim/psr7": "^1.7",
+        "intervention/image": "^3.9"
+    }
+}
