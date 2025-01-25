@@ -7,12 +7,23 @@
 </head>
 <body>
     <h1>Formulario para subir archivo</h1>
-
-    <form action="/upload?path=/carpeta-3/carpeta-4" method="POST" enctype="multipart/form-data">
+    <label for="folder-path">Ruta de la carpeta:</label>
+    <input type="text" id="folder-path" name="folder-path" value="/folder-1">
+    <br>
+    <br>
+    <form action="/upload?path=/folder-1" method="POST" enctype="multipart/form-data">
         <label for="file">Seleccionar archivo:</label>
         <input type="file" id="files" name="files[]" multiple required><br><br>
 
         <input type="submit" value="Subir archivo">
     </form>
+    <script>
+        const folderPathInput = document.getElementById('folder-path');
+        const form = document.querySelector('form');
+        folderPathInput.addEventListener('change', () => {
+            const folderPath = folderPathInput.value;
+            form.action = `/upload?path=${folderPath}`;
+        })
+    </script>
 </body>
 </html>
