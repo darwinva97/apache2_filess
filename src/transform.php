@@ -49,12 +49,12 @@ class ImageTransformer {
         }
         
         // Adquirir lock
-        $lock = fopen($lockFile, 'w+');
-        if (!flock($lock, LOCK_EX | LOCK_NB)) {
-            // Si no podemos obtener el lock, esperar brevemente y reintentar
-            usleep(100000); // 100ms
-            return $this->transform($path, $params);
-        }
+        // $lock = fopen($lockFile, 'w+');
+        // if (!flock($lock, LOCK_EX | LOCK_NB)) {
+        //     // Si no podemos obtener el lock, esperar brevemente y reintentar
+        //     usleep(100000); // 100ms
+        //     return $this->transform($path, $params);
+        // }
         
         try {
             // Verificar espacio en caché antes de procesar
@@ -99,8 +99,8 @@ class ImageTransformer {
             
         } finally {
             // Liberar lock y eliminar archivo de lock
-            flock($lock, LOCK_UN);
-            fclose($lock);
+            // flock($lock, LOCK_UN);
+            // fclose($lock);
             @unlink($lockFile);
         }
     }
