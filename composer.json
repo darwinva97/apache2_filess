@@ -15,6 +15,7 @@
     "require": {
         "slim/slim": "^4.14",
         "slim/psr7": "^1.7",
-        "intervention/image": "^3.9"
+        "intervention/image": "^3.9",
+        "vlucas/phpdotenv": "^5.6"
     }
 }

@@ -36,9 +36,6 @@ class ImageTransformer {
         $cacheKey = $this->getCacheKey($path, $params);
         $cachePath = $this->getCachePath($cacheKey, $params['format']);
         
-        // Usar lock file para evitar race conditions
-        $lockFile = $cachePath . '.lock';
-        
         if (file_exists($cachePath)) {
             // Verificar si el cache ha expirado
             if (time() - filemtime($cachePath) > $this->maxCacheAge) {
@@ -48,24 +45,26 @@ class ImageTransformer {
             }
         }
         
-        // Adquirir lock
-        // $lock = fopen($lockFile, 'w+');
-        // if (!flock($lock, LOCK_EX | LOCK_NB)) {
-        //     // Si no podemos obtener el lock, esperar brevemente y reintentar
-        //     usleep(100000); // 100ms
-        //     return $this->transform($path, $params);
-        // }
-        
         try {
             // Verificar espacio en caché antes de procesar
             $this->manageCacheSize();
             
             // Cargar y procesar imagen
             $image = $this->manager->read($path);
+            $originalWidth = $image->width();
+            $originalHeight = $image->height();
+            $originalRatio = $originalWidth / $originalHeight;
             
             if ($params['width'] || $params['height']) {
                 $width = $params['width'];
                 $height = $params['height'];
+                
+                // Calcular dimensiones proporcionales si falta uno de los parámetros
+                if ($width && !$height) {
+                    $height = (int)($width / $originalRatio);
+                } elseif ($height && !$width) {
+                    $width = (int)($height * $originalRatio);
+                }
                 
                 switch ($params['fit']) {
                     case 'contain':
@@ -101,7 +100,7 @@ class ImageTransformer {
             // Liberar lock y eliminar archivo de lock
             // flock($lock, LOCK_UN);
             // fclose($lock);
-            @unlink($lockFile);
+            @unlink($cachePath . '.lock');
         }
     }
     

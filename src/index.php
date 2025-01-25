@@ -1,9 +1,15 @@
 <?php
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+// Initialize dotenv
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/transform.php';
+require_once __DIR__ . '/middleware.php';
 
 use Intervention\Image\Drivers\Gd\Driver;
 use Slim\Factory\AppFactory;
@@ -20,6 +26,15 @@ $transformer = new ImageTransformer(
 $app = AppFactory::create();
 
 $app->addErrorMiddleware(true, true, true);
+
+// Add token validation middleware to all routes except /image
+$app->add(function($request, $handler) {
+    $path = $request->getUri()->getPath();
+    if (strpos($path, '/image/') === 0) {
+        return $handler->handle($request);
+    }
+    return validateToken($request, $handler);
+});
 
 // crea una carpeta
 $app->post('/create-folder', function ($request, $response) {
@@ -292,11 +307,17 @@ $app->get('/image/{path:.*}', function ($request, $response, $args) use ($transf
     ]));
     
     try {
+        // Get original MIME type before transformation
+        $originalMimeType = mime_content_type($path);
+        
         $transformedPath = $transformer->transform($path, $validParams);
         $stream = fopen($transformedPath, 'r');
         
+        // Use transformed MIME type only if format was explicitly changed
+        $mimeType = isset($params['format']) ? mime_content_type($transformedPath) : $originalMimeType;
+        
         return $response
-            ->withHeader('Content-Type', mime_content_type($transformedPath))
+            ->withHeader('Content-Type', $mimeType)
             ->withHeader('Cache-Control', 'public, max-age=31536000')
             ->withBody(new \Slim\Psr7\Stream($stream));
     } catch (Exception $e) {
@@ -331,7 +352,7 @@ $app->get('/metadata/{path:.*}', function ($request, $response, $args) {
     
     $response->getBody()->write(json_encode($metadata));
     return $response->withHeader('Content-Type', 'application/json');
-});
+})->add('validateToken');
 
 // 404
 $app->get('/{path:.*}', function ($request, $response, $args) {

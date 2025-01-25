@@ -1,4 +1,17 @@
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ src/index.php [QSA,L]
+RewriteRule ^ ./src/index.php [QSA,L]
+
+# Enable Authorization header
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+
+# Allow Authorization header
+Header always set Access-Control-Allow-Headers "Authorization, Content-Type"
+Header always set Access-Control-Allow-Methods "POST, GET, OPTIONS, DELETE, PUT"
+Header always set Access-Control-Allow-Origin "*"
+
+# Handle OPTIONS method
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
