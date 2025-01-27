@@ -30,7 +30,7 @@ $app->addErrorMiddleware(true, true, true);
 // Add token validation middleware to all routes except /image
 $app->add(function($request, $handler) {
     $path = $request->getUri()->getPath();
-    if (strpos($path, '/image/') === 0) {
+    if (strpos($path, '/image/') === 0 || strpos($path, '/image-optimizer') === 0) {
         return $handler->handle($request);
     }
     return validateToken($request, $handler);
@@ -320,6 +320,63 @@ $app->get('/image/{path:.*}', function ($request, $response, $args) use ($transf
             ->withHeader('Content-Type', $mimeType)
             ->withHeader('Cache-Control', 'public, max-age=31536000')
             ->withBody(new \Slim\Psr7\Stream($stream));
+    } catch (Exception $e) {
+        var_dump($e->getMessage());
+        return $response
+            ->withStatus(500)
+            ->withHeader('Content-Type', 'application/json')
+            ->write(json_encode(['error' => $e->getMessage()]));
+    }
+});
+
+
+// Endpoint para transformar imágenes recibe un search query param
+$app->get('/image-optimizer', function ($request, $response) use ($transformer) {
+    $params = $request->getQueryParams();
+    $validParams = array_intersect_key($params, array_flip([
+        'url',
+        'width',
+        'height',
+        'format',
+        'quality',
+        'fit',
+        'blur'
+    ]));
+
+    // make the request to the external url
+    $imageUrl = $validParams['url'];
+    $imageData = file_get_contents(filename: $imageUrl);
+
+    if (!$imageData) {
+        return $response
+            ->withStatus(500)
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody(new \Slim\Psr7\Stream(fopen('php://temp', 'r')))
+            ->write(json_encode(['error' => 'Image not found']));
+    }
+
+    $originalMimeType = finfo_buffer(finfo_open(FILEINFO_MIME_TYPE), $imageData);
+
+    $mimeParts = explode('/', $originalMimeType);
+    $extension = isset($mimeParts[1]) ? $mimeParts[1] : 'jpg';
+    $imageName = hash('sha256', $imageUrl) . '.' . $extension;
+
+    $path = OPTIMIZER_PATH . '/' . $imageName;
+
+    file_put_contents($path, $imageData);
+
+    try {
+        // Get original MIME type before transformation
+        $transformedPath = $transformer->transform($path, $validParams);
+        $stream = fopen($transformedPath, 'r');
+        
+        // Use transformed MIME type only if format was explicitly changed
+        $mimeType = isset($params['format']) ? mime_content_type($transformedPath) : $originalMimeType;
+
+        return $response
+            ->withHeader('Content-Type', $mimeType)
+            ->withHeader('Cache-Control', 'public, max-age=31536000')
+            ->withBody(new \Slim\Psr7\Stream($stream)); 
     } catch (Exception $e) {
         var_dump($e->getMessage());
         return $response

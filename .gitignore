@@ -1,4 +1,5 @@
 vendor
 cache/*
 storage/*
+optimizer/*
 .env

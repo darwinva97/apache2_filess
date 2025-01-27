@@ -35,8 +35,9 @@ class ImageTransformer {
         $params = $this->sanitizeParams($params);
         $cacheKey = $this->getCacheKey($path, $params);
         $cachePath = $this->getCachePath($cacheKey, $params['format']);
-        
+
         if (file_exists($cachePath)) {
+
             // Verificar si el cache ha expirado
             if (time() - filemtime($cachePath) > $this->maxCacheAge) {
                 unlink($cachePath);
